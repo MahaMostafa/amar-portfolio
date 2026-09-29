@@ -135,6 +135,11 @@
   /* phones: blended grain inside 3D pages costs an extra surface per page in WebKit; a plain overlay looks the same at this size */
   @media (max-width: 760px) { .face .pg::after { mix-blend-mode: normal; opacity: .14; } }
   @media (prefers-reduced-motion: reduce) { .rise { transition: opacity .3s ease; } .loading .rise { transform: none; } }
+  /* phones turn one page at a time with the finger (shared/mobile-flip.js): nothing scrolls, the spine is the page's left edge */
+  html.phone, html.phone body { overflow: hidden; overscroll-behavior: none; }
+  html.phone .stage { touch-action: pinch-zoom; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  html.phone .edge.l { right: 540px; }
+  .sheet .face.back { background: var(--paper-2); }
 </style>
 </head>
 <body class="loading">
@@ -187,6 +192,7 @@
 <script src="assets/lottie/turn-page.js"></script>
 <script src="shared/paper-sound.js"></script>
 <script src="shared/pages.js"></script>
+<script src="shared/mobile-flip.js"></script>
 <script>
 (() => {
   const pages = window.MAG_PAGES;
@@ -223,39 +229,77 @@
   lottieInto(document.getElementById("hintLot"), 60);
 
   /* ---- build leaves: leaf i → front = page 2i, back = page 2i+1 ---- */
+  // desktop: the whole issue as leaves (built only while the screen is desktop sized)
   const leaves = [];
   // photos past the opening spreads load only as the reader approaches them (phones cap memory per tab)
   const lazy = html => html.replace(/<img /g, '<img loading="lazy" decoding="async" ');
-  for (let i = 0; i < N; i++) {
-    const el = document.createElement("div");
-    el.className = i === 0 ? "leaf first" : "leaf";
-    const face = p => i < 2 ? renderPage(p) : lazy(renderPage(p));
-    el.innerHTML = `<div class="face front">${face(pages[2 * i])}<div class="shade"></div></div>
-                    <div class="face back">${face(pages[2 * i + 1])}<div class="shade"></div></div>`;
-    book.appendChild(el);
-    leaves.push({ el, front: el.querySelector(".front .shade"), back: el.querySelector(".back .shade"), prev: 0, shown: true });
+  function buildLeaves() {
+    for (let i = 0; i < N; i++) {
+      const el = document.createElement("div");
+      el.className = i === 0 ? "leaf first" : "leaf";
+      const face = p => i < 2 ? renderPage(p) : lazy(renderPage(p));
+      el.innerHTML = `<div class="face front">${face(pages[2 * i])}<div class="shade"></div></div>
+                      <div class="face back">${face(pages[2 * i + 1])}<div class="shade"></div></div>`;
+      book.appendChild(el);
+      leaves.push({ el, front: el.querySelector(".front .shade"), back: el.querySelector(".back .shade"), prev: 0, shown: true });
+    }
   }
+  function clearLeaves() { leaves.forEach(L => L.el.remove()); leaves.length = 0; }
+  // phones: one page at a time, turned with the finger (shared/mobile-flip.js)
+  const flip = MobileFlip({ pages, book, castL, castR, edgeL, edgeR, stage: document.querySelector(".stage"), reduce });
+  flip.onFirstMove(() => intro.classList.add("gone"));
   document.getElementById("sndSlot").appendChild(PaperSound.button());
 
-  /* ---- geometry: desktop turns a leaf per step; phones show one page per step ---- */
+  /* ---- geometry: desktop turns a leaf per scroll step; phones turn one page per swipe ---- */
   const lenis = (!reduce && window.Lenis) ? new Lenis({ lerp: .08, wheelMultiplier: .75, touchMultiplier: 1.4 }) : null;
   const jump = y => lenis ? lenis.scrollTo(y, { immediate: true, force: true }) : scrollTo(0, y);
-  let vh = innerHeight, step = 1, mobile = false, maxQ = N, lastQ = -1, lastW = 0;
+  const hashAt = () => { const m = /p=([\d.]+)/.exec(location.hash); return m ? parseFloat(m[1]) : null; };
+  const pageToSpread = p => Math.ceil(p / 2);                // phone page → the desktop spread it sits in
+  const spreadToPage = s => s <= 0 ? 0 : s >= N ? 2 * N - 1 : 2 * s - 1;
+  let vh = innerHeight, step = 1, mobile = false, maxQ = N, lastQ = -1, lastW = 0, inited = false;
   function layout() {
     // phone browsers resize the viewport as their address bar slides in and out while you scroll;
     // re-measuring then would jump the page mid-swipe, so keep the geometry unless the size really changed
     if (innerWidth === lastW && Math.abs(innerHeight - vh) < 160) return;
     lastW = innerWidth;
-    const keep = scrollY / (maxQ * step);                     // stay at the same point in the issue
+    const wasMobile = mobile, first = !inited;
     vh = innerHeight;
     mobile = innerWidth < 760;
-    maxQ = mobile ? 2 * N - 1 : N;
-    step = vh * (mobile ? .8 : .9);
+    if (mobile) {
+      if (first || !wasMobile) {                              // into phone mode: tear down the spread, lay out single pages
+        const at = first ? (hashAt() || 0) : spreadToPage(Math.round(scrollY / step));
+        clearLeaves();
+        ground.style.transform = "";
+        document.documentElement.classList.add("phone");
+        document.getElementById("spacer").style.height = "0px";
+        if (lenis) lenis.stop();
+        jump(0);
+        document.querySelector("#hint span:last-child").textContent = "Swipe to turn the page";
+        flip.enter(at);
+        maxQ = 2 * N - 1;
+      }
+      const scale = Math.min((innerWidth - 32) / W, vh * .74 / 720);
+      wrap.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      flip.layout(scale, innerWidth, vh);
+      inited = true; lastQ = -1;
+      return;
+    }
+    let keep = scrollY / (maxQ * step);                       // stay at the same point in the issue
+    if (first || wasMobile) {
+      if (wasMobile) { keep = pageToSpread(flip.goal) / N; flip.exit(); }
+      document.documentElement.classList.remove("phone");
+      document.querySelector("#hint span:last-child").textContent = "Scroll to turn the page";
+      if (lenis) lenis.start();
+      buildLeaves();
+    }
+    maxQ = N;
+    step = vh * .9;
     document.getElementById("spacer").style.height = (maxQ * step + vh) + "px";
-    const scale = mobile ? Math.min(innerWidth * .9 / W, vh * .74 / 720) : Math.min(innerWidth * .9 / 1080, vh * .8 / 720);
+    const scale = Math.min(innerWidth * .9 / 1080, vh * .8 / 720);
     wrap.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    if (wasMobile && lenis && lenis.resize) lenis.resize();  // it last measured a page that could not scroll
     if (keep > 0) jump(keep * maxQ * step);
-    lastQ = -1;
+    inited = true; lastQ = -1;
   }
   layout(); addEventListener("resize", layout);
 
@@ -350,7 +394,19 @@
     openIdx.forEach(i => { const el = book.querySelector(`.pg[data-page="${pages[i].id}"]`); if (el) el.classList.add("is-open"); });
     document.dispatchEvent(new CustomEvent("mag:open", { detail: { indices: openIdx, ids: openIdx.map(i => pages[i].id) } }));
   }
-  function loop(t) { if (lenis) lenis.raf(t); render(); requestAnimationFrame(loop); }
+  function loop(t) { if (lenis) lenis.raf(t); if (mobile) phoneFrame(t); else render(); requestAnimationFrame(loop); }
+
+  // phones: the paper moves under the finger or on its spring; the chrome follows it here
+  function phoneFrame(t) {
+    if (!flip.frame(t) && lastQ >= 0) return;
+    if (lastQ < 0) openAt = -1;                               // fresh layout: mark the open page again
+    const q = flip.q; lastQ = q;
+    const s = Math.round(q);
+    count.innerHTML = s === 0 ? "Cover" : s === maxQ ? "Back cover" : `<b>${s}</b>of ${maxQ - 1}`;
+    if (q > .6) hint.classList.add("gone");
+    if (flip.settled && s !== openAt) { openAt = s; markOpen(s); }
+  }
+  const count = document.getElementById("count");
   requestAnimationFrame(loop);
 
   /* ---- settle on the nearest page, like paper falling flat ---- */
@@ -359,13 +415,14 @@
   let dir = 1, snapTimer = 0, lastY = scrollY, busyUntil = 0, touching = false;
   const easeInOut = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   function go(target, duration = 1.05) {
+    if (mobile) return flip.go(target, duration);
     target = clamp(target, 0, maxQ);
     busyUntil = performance.now() + duration * 1000 + 150;
     if (lenis) lenis.scrollTo(target * step, { duration, easing: easeInOut });
     else scrollTo({ top: target * step, behavior: reduce ? "auto" : "smooth" });
   }
   function settle() {
-    if (touching) return;                                     // wait for the finger to lift
+    if (touching || mobile) return;                           // wait for the finger to lift (phones settle themselves)
     if (performance.now() < busyUntil) { armSettle(); return; }
     const q = scrollY / step, f = q - Math.floor(q);
     if (f < .003 || f > .997) return;
@@ -385,7 +442,7 @@
   addEventListener("touchcancel", lift, { passive: true });
   addEventListener("wheel", () => { busyUntil = 0; }, { passive: true });
 
-  const cur = () => Math.round(scrollY / step);
+  const cur = () => mobile ? flip.goal : Math.round(scrollY / step);
   addEventListener("keydown", e => {
     if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(e.key)) { e.preventDefault(); go(cur() + 1); }
     if (["ArrowLeft", "ArrowUp", "PageUp"].includes(e.key)) { e.preventDefault(); go(cur() - 1); }
@@ -409,14 +466,18 @@
   window.MAG = {
     pages, N, go, renderPage: window.renderPage,
     get mobile() { return mobile; },
-    get q() { return lastQ; },
+    get q() { return mobile ? flip.q : lastQ; },
     get open() { return openIdx.slice(); },
-    lock(on) { if (lenis) on ? lenis.stop() : lenis.start(); document.documentElement.style.overflow = on ? "hidden" : ""; },
+    lock(on) {
+      flip.lock(on);
+      if (mobile) return;                                     // phones: gestures freeze, nothing scrolls anyway
+      if (lenis) on ? lenis.stop() : lenis.start(); document.documentElement.style.overflow = on ? "hidden" : "";
+    },
   };
 
   /* ---- open: wait for type and the first pages, then lift the loader ---- */
-  const hp = /p=([\d.]+)/.exec(location.hash);              // #p=3 opens at a given spread
-  const firstImgs = [...leaves[0].el.querySelectorAll("img"), ...leaves[1].el.querySelectorAll("img")];
+  const hp = /p=([\d.]+)/.exec(location.hash);              // #p=3 opens at a given spread (a given page on phones)
+  const firstImgs = mobile ? flip.images() : [...leaves[0].el.querySelectorAll("img"), ...leaves[1].el.querySelectorAll("img")];
   const ready = Promise.all([
     document.fonts ? document.fonts.ready : Promise.resolve(),
     ...firstImgs.map(img => img.decode ? img.decode().catch(() => {}) : Promise.resolve()),
@@ -426,7 +487,7 @@
     document.getElementById("loader").classList.add("gone");
     document.body.classList.remove("loading");
     setTimeout(() => { if (loaderAnim) loaderAnim.destroy(); }, 800);
-    if (hp) { jump(parseFloat(hp[1]) * step); intro.classList.add("gone"); }
+    if (hp) { if (mobile) flip.set(parseFloat(hp[1])); else jump(parseFloat(hp[1]) * step); intro.classList.add("gone"); }
   });
 
   const start = (sound) => { if (sound) PaperSound.setOn(true); intro.classList.add("gone"); setTimeout(() => go(1, 1.3), 180); };
