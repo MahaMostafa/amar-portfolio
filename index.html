@@ -86,6 +86,14 @@
   .track i { position: absolute; left: 0; top: -1px; height: 3px; width: 100%; background: var(--blush); transform-origin: 0 50%; transform: scaleX(0); }
   .snd { color: var(--cream); border-color: rgba(246,241,234,.35); }
   @media (hover: hover) and (pointer: fine) { .snd:hover { background: rgba(246,241,234,.1); } }
+  .tocover { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; color: var(--cream); background: transparent;
+    border: 1px solid rgba(246,241,234,.35); border-radius: 999px; padding: 8px 15px 8px 12px;
+    font: 500 10px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase; transition: background-color .2s ease, transform .16s var(--ease-out); }
+  .tocover[hidden] { display: none; }
+  .tocover svg { width: 15px; height: 15px; }
+  .tocover:active { transform: scale(.97); }
+  .tocover:focus-visible { outline: 2px solid var(--blush); outline-offset: 3px; }
+  @media (hover: hover) and (pointer: fine) { .tocover:hover { background: rgba(246,241,234,.1); } }
 
   .hint { position: fixed; left: 50%; bottom: 52px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; font: 500 9px/1 var(--sans); letter-spacing: .26em; text-transform: uppercase; color: rgba(246,241,234,.65); z-index: 10; white-space: nowrap; transition: opacity .5s ease; pointer-events: none; }
   .hint .lot { width: 34px; height: 34px; }
@@ -161,7 +169,7 @@
 
   <header class="top"><b>Amar</b><span>Portfolio · 2024/26</span></header>
   <footer class="bar">
-    <span class="count" id="count" aria-live="polite">Cover</span>
+    <span class="left"><span class="count" id="count" aria-live="polite">Cover</span><button type="button" class="tocover" id="toCover" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span>Back to cover</span></button></span>
     <span class="track"><i id="prog"></i></span>
     <span id="sndSlot"></span>
   </footer>
@@ -372,9 +380,7 @@
 
     // chrome
     const s = Math.round(q);
-    const count = document.getElementById("count");
-    if (mobile) count.innerHTML = s === 0 ? "Cover" : s === maxQ ? "Back cover" : `<b>${s}</b>of ${maxQ - 1}`;
-    else count.innerHTML = s === 0 ? "Cover" : s === N ? "Back cover" : `<b>${2 * s - 1} · ${2 * s}</b>Spread ${s} of ${N - 1}`;
+    showCount(s === 0 ? "Cover" : `<b>${2 * s - 1} · ${2 * s}</b>Spread ${s} of ${N - 1}`, s === N);
     document.getElementById("prog").style.transform = `scaleX(${q / maxQ})`;
     if (q > .6) hint.classList.add("gone");
 
@@ -402,11 +408,18 @@
     if (lastQ < 0) openAt = -1;                               // fresh layout: mark the open page again
     const q = flip.q; lastQ = q;
     const s = Math.round(q);
-    count.innerHTML = s === 0 ? "Cover" : s === maxQ ? "Back cover" : `<b>${s}</b>of ${maxQ - 1}`;
+    showCount(s === 0 ? "Cover" : `<b>${s}</b>of ${maxQ - 1}`, s === maxQ);
     if (q > .6) hint.classList.add("gone");
     if (flip.settled && s !== openAt) { openAt = s; markOpen(s); }
   }
-  const count = document.getElementById("count");
+  // on the back cover the page count becomes a "Back to cover" button
+  const count = document.getElementById("count"), toCover = document.getElementById("toCover");
+  let countHTML = "", atEnd = null;
+  function showCount(html, end) {
+    if (end !== atEnd) { atEnd = end; count.hidden = end; toCover.hidden = !end; }
+    if (!end && html !== countHTML) { countHTML = html; count.innerHTML = html; }
+  }
+  toCover.addEventListener("click", () => go(0, mobile ? .6 : 1.8));
   requestAnimationFrame(loop);
 
   /* ---- settle on the nearest page, like paper falling flat ---- */
