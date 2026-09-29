@@ -53,7 +53,7 @@
 
   .leaf {
     position: absolute; left: 540px; top: 0; width: 540px; height: 720px;
-    transform-origin: 0 50%; transform-style: preserve-3d; will-change: transform;
+    transform-origin: 0 50%; transform-style: preserve-3d;
   }
   .face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; }
   .face.back { transform: rotateY(180deg); }
@@ -132,6 +132,8 @@
   .track { bottom: calc(32px + env(safe-area-inset-bottom, 0px)); }
   .hint { bottom: calc(52px + env(safe-area-inset-bottom, 0px)); }
   @media (max-width: 1100px) { .intro { padding-bottom: calc(9vh + env(safe-area-inset-bottom, 0px)); } }
+  /* phones: blended grain inside 3D pages costs an extra surface per page in WebKit; a plain overlay looks the same at this size */
+  @media (max-width: 760px) { .face .pg::after { mix-blend-mode: normal; opacity: .14; } }
   @media (prefers-reduced-motion: reduce) { .rise { transition: opacity .3s ease; } .loading .rise { transform: none; } }
 </style>
 </head>
@@ -222,13 +224,16 @@
 
   /* ---- build leaves: leaf i → front = page 2i, back = page 2i+1 ---- */
   const leaves = [];
+  // photos past the opening spreads load only as the reader approaches them (phones cap memory per tab)
+  const lazy = html => html.replace(/<img /g, '<img loading="lazy" decoding="async" ');
   for (let i = 0; i < N; i++) {
     const el = document.createElement("div");
     el.className = i === 0 ? "leaf first" : "leaf";
-    el.innerHTML = `<div class="face front">${renderPage(pages[2 * i])}<div class="shade"></div></div>
-                    <div class="face back">${renderPage(pages[2 * i + 1])}<div class="shade"></div></div>`;
+    const face = p => i < 2 ? renderPage(p) : lazy(renderPage(p));
+    el.innerHTML = `<div class="face front">${face(pages[2 * i])}<div class="shade"></div></div>
+                    <div class="face back">${face(pages[2 * i + 1])}<div class="shade"></div></div>`;
     book.appendChild(el);
-    leaves.push({ el, front: el.querySelector(".front .shade"), back: el.querySelector(".back .shade"), prev: 0 });
+    leaves.push({ el, front: el.querySelector(".front .shade"), back: el.querySelector(".back .shade"), prev: 0, shown: true });
   }
   document.getElementById("sndSlot").appendChild(PaperSound.button());
 
@@ -266,9 +271,14 @@
     lastQ = q;
     const leafT = i => clamp(mobile ? q - 2 * i : q - i, 0, 1);
 
+    // only the leaf turning and the one beneath each side can be seen; everything else stays unpainted,
+    // which keeps the 3D layers and decoded photos inside what an iPhone allows a tab
+    const near = Math.floor(Math.min(mobile ? q / 2 : q, N - 1e-6));
     let active = -1, flipped = 0;
     for (let i = 0; i < N; i++) {
       const L = leaves[i];
+      const show = i >= near - 1 && i <= near + 1;
+      if (show !== L.shown) { L.shown = show; L.el.style.display = show ? "" : "none"; L.el.style.willChange = show ? "transform" : "auto"; }
       let t = leafT(i);
       if (reduce) t = t < .5 ? 0 : 1;
       const e = smooth(t), lift = Math.sin(Math.PI * e);
