@@ -94,15 +94,18 @@
   function metrics() {
     return { vw: ui.scroll.clientWidth, vh: ui.scroll.clientHeight, top: ui.top.offsetHeight, bot: ui.bot.offsetHeight };
   }
-  // fit = the whole page on screen; read = ~1.5 to 1.8 times the fit-to-width size, so body text lands near 14px
+  // fit = the whole page on screen; read = the page's text column (inside its 48px margins) exactly fills
+  // the screen width, so lines never need sideways panning and only the margins sit off-screen
+  const MARGIN = 48, EDGE = 10;
   function computeZooms(m) {
     const widthFit = (m.vw - 2 * GUT) / W;
     const heightFit = (m.vh - m.top - m.bot - 8) / H;
     fitZ = Math.max(.2, Math.min(widthFit, heightFit));
-    const TARGET = 1.12;
-    const r = widthFit >= TARGET ? widthFit : Math.min(Math.max(TARGET, widthFit * 1.5), widthFit * 1.8);
-    readZ = Math.max(r, fitZ * 1.25);
+    const columnFit = (m.vw - 2 * EDGE) / (W - 2 * MARGIN);
+    readZ = Math.max(columnFit, fitZ * 1.15);
   }
+  // in reading zoom, line the text column up with the screen edges
+  const columnLeft = () => boxPos.left + MARGIN * Z - EDGE;
   function applyZoom(z) {
     Z = z;
     const bw = W * z, bh = H * z, m = metrics();
@@ -131,7 +134,7 @@
   }
   // reading start: the top left of the text column, just inside the gutter
   function panHome() {
-    ui.scroll.scrollLeft = mode === "read" ? boxPos.left + 40 * Z - 12 : 0;
+    ui.scroll.scrollLeft = mode === "read" ? columnLeft() : 0;
     ui.scroll.scrollTop = 0;
   }
   function pagePoint(cx, cy) {
@@ -237,7 +240,8 @@
     const src = bookRect(i);
     if (point && src) {
       const px = clamp((point.x - src.left) / src.width * W, 0, W), py = clamp((point.y - src.top) / src.height * H, 0, H);
-      panTo(px, py, point.x, point.y);
+      panTo(px, py, point.x, point.y);              // open at the height that was tapped...
+      ui.scroll.scrollLeft = columnLeft();          // ...with the text column square on screen
     } else panHome();
 
     MAG.lock(true);
