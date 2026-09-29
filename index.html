@@ -90,6 +90,13 @@
     border: 1px solid rgba(246,241,234,.35); border-radius: 999px; padding: 8px 15px 8px 12px;
     font: 500 10px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase; transition: background-color .2s ease, transform .16s var(--ease-out); }
   .tocover[hidden] { display: none; }
+  .bar .left { display: inline-flex; align-items: center; gap: 16px; }
+  .bar .left .count { min-width: 0; }
+  .tocover .short { display: none; }
+  @media (max-width: 420px) { .tocover .long { display: none; } .tocover .short { display: inline; } .bar .left { gap: 12px; } }
+  .count { white-space: nowrap; }
+  /* very small phones: the sound button keeps its icon; its label stays for screen readers */
+  @media (max-width: 360px) { .bar .snd { padding: 8px 10px; } .bar .snd span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
   .tocover svg { width: 15px; height: 15px; }
   .tocover:active { transform: scale(.97); }
   .tocover:focus-visible { outline: 2px solid var(--blush); outline-offset: 3px; }
@@ -169,7 +176,7 @@
 
   <header class="top"><b>Amar</b><span>Portfolio · 2024/26</span></header>
   <footer class="bar">
-    <span class="left"><span class="count" id="count" aria-live="polite">Cover</span><button type="button" class="tocover" id="toCover" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span>Back to cover</span></button></span>
+    <span class="left"><span class="count" id="count" aria-live="polite">Cover</span><button type="button" class="tocover" id="toCover" aria-label="Back to cover" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span class="long">Back to cover</span><span class="short">Cover</span></button></span>
     <span class="track"><i id="prog"></i></span>
     <span id="sndSlot"></span>
   </footer>
@@ -380,7 +387,7 @@
 
     // chrome
     const s = Math.round(q);
-    showCount(s === 0 ? "Cover" : `<b>${2 * s - 1} · ${2 * s}</b>Spread ${s} of ${N - 1}`, s === N);
+    showCount(s === 0 ? "Cover" : s === N ? "Back cover" : `<b>${2 * s - 1} · ${2 * s}</b>Spread ${s} of ${N - 1}`, s === 0);
     document.getElementById("prog").style.transform = `scaleX(${q / maxQ})`;
     if (q > .6) hint.classList.add("gone");
 
@@ -408,16 +415,16 @@
     if (lastQ < 0) openAt = -1;                               // fresh layout: mark the open page again
     const q = flip.q; lastQ = q;
     const s = Math.round(q);
-    showCount(s === 0 ? "Cover" : `<b>${s}</b>of ${maxQ - 1}`, s === maxQ);
+    showCount(s === 0 ? "Cover" : s === maxQ ? "Back cover" : `<b>${s}</b>of ${maxQ - 1}`, s === 0);
     if (q > .6) hint.classList.add("gone");
     if (flip.settled && s !== openAt) { openAt = s; markOpen(s); }
   }
-  // on the back cover the page count becomes a "Back to cover" button
+  // the page count, with a "Back to cover" button beside it on every page but the cover
   const count = document.getElementById("count"), toCover = document.getElementById("toCover");
-  let countHTML = "", atEnd = null;
-  function showCount(html, end) {
-    if (end !== atEnd) { atEnd = end; count.hidden = end; toCover.hidden = !end; }
-    if (!end && html !== countHTML) { countHTML = html; count.innerHTML = html; }
+  let countHTML = "", onCover = null;
+  function showCount(html, cover) {
+    if (cover !== onCover) { onCover = cover; toCover.hidden = cover; }
+    if (html !== countHTML) { countHTML = html; count.innerHTML = html; }
   }
   toCover.addEventListener("click", () => go(0, mobile ? .6 : 1.8));
   requestAnimationFrame(loop);
