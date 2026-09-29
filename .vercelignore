@@ -1,14 +1,11 @@
-.DS_Store
-
-# earlier design directions, kept locally only
+.git
+.env*
+README.md
 option-b-roll.html
 option-c-gatefold.html
 options.html
-
-# unpacked Lottie source (the page uses assets/lottie/turn-page.js)
 assets/lottie/x/
-
-# source images no longer used by the magazine
+assets/lottie/turn-page.lottie
 assets/x3.jpg
 assets/x8.jpg
 assets/x10.jpg
@@ -17,5 +14,3 @@ assets/x12.jpg
 assets/x13.jpg
 assets/x18.jpg
 assets/x19.jpg
-.vercel
-.env*
