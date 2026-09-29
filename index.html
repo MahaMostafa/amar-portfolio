@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Amar Suleiman</title>
 <meta name="description" content="Amar Suleiman, Marketing & Brand Strategist.">
 <!-- link previews (WhatsApp, iMessage, LinkedIn, X) -->
@@ -124,6 +124,14 @@
     .top, .bar { padding: 14px 16px; } .track { display: none; } .count { min-width: 0; }
     .top span { display: none; }
   }
+  /* iPhone notch and home indicator (viewport-fit=cover): the desk runs edge to edge, the chrome stays in the safe area */
+  :root { --pad: 24px; --pad-y: 18px; }
+  @media (max-width: 760px) { :root { --pad: 16px; --pad-y: 14px; } }
+  .top { padding: max(var(--pad-y), env(safe-area-inset-top)) max(var(--pad), env(safe-area-inset-right)) var(--pad-y) max(var(--pad), env(safe-area-inset-left)); }
+  .bar { padding: var(--pad-y) max(var(--pad), env(safe-area-inset-right)) max(var(--pad-y), env(safe-area-inset-bottom)) max(var(--pad), env(safe-area-inset-left)); }
+  .track { bottom: calc(32px + env(safe-area-inset-bottom, 0px)); }
+  .hint { bottom: calc(52px + env(safe-area-inset-bottom, 0px)); }
+  @media (max-width: 1100px) { .intro { padding-bottom: calc(9vh + env(safe-area-inset-bottom, 0px)); } }
   @media (prefers-reduced-motion: reduce) { .rise { transition: opacity .3s ease; } .loading .rise { transform: none; } }
 </style>
 </head>
