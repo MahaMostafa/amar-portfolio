@@ -235,8 +235,12 @@
   /* ---- geometry: desktop turns a leaf per step; phones show one page per step ---- */
   const lenis = (!reduce && window.Lenis) ? new Lenis({ lerp: .08, wheelMultiplier: .75, touchMultiplier: 1.4 }) : null;
   const jump = y => lenis ? lenis.scrollTo(y, { immediate: true, force: true }) : scrollTo(0, y);
-  let vh = innerHeight, step = 1, mobile = false, maxQ = N, lastQ = -1;
+  let vh = innerHeight, step = 1, mobile = false, maxQ = N, lastQ = -1, lastW = 0;
   function layout() {
+    // phone browsers resize the viewport as their address bar slides in and out while you scroll;
+    // re-measuring then would jump the page mid-swipe, so keep the geometry unless the size really changed
+    if (innerWidth === lastW && Math.abs(innerHeight - vh) < 160) return;
+    lastW = innerWidth;
     const keep = scrollY / (maxQ * step);                     // stay at the same point in the issue
     vh = innerHeight;
     mobile = innerWidth < 760;
@@ -340,26 +344,36 @@
   requestAnimationFrame(loop);
 
   /* ---- settle on the nearest page, like paper falling flat ---- */
-  let dir = 1, snapTimer = 0, lastY = scrollY, busy = false;
+  // A settle can be cut short without finishing (on phones, swipe momentum interrupts it), so "busy" is a
+  // deadline rather than a flag that waits for onComplete; a half-turned page always gets settled again.
+  let dir = 1, snapTimer = 0, lastY = scrollY, busyUntil = 0, touching = false;
   const easeInOut = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   function go(target, duration = 1.05) {
-    target = clamp(target, 0, maxQ); busy = true;
-    const done = () => { busy = false; };
-    if (lenis) lenis.scrollTo(target * step, { duration, easing: easeInOut, onComplete: done });
-    else { scrollTo({ top: target * step, behavior: reduce ? "auto" : "smooth" }); setTimeout(done, 700); }
+    target = clamp(target, 0, maxQ);
+    busyUntil = performance.now() + duration * 1000 + 150;
+    if (lenis) lenis.scrollTo(target * step, { duration, easing: easeInOut });
+    else scrollTo({ top: target * step, behavior: reduce ? "auto" : "smooth" });
   }
+  function settle() {
+    if (touching) return;                                     // wait for the finger to lift
+    if (performance.now() < busyUntil) { armSettle(); return; }
+    const q = scrollY / step, f = q - Math.floor(q);
+    if (f < .003 || f > .997) return;
+    go(dir > 0 ? (f > .22 ? Math.ceil(q) : Math.floor(q)) : (f < .78 ? Math.floor(q) : Math.ceil(q)), .75);
+  }
+  function armSettle() { clearTimeout(snapTimer); snapTimer = setTimeout(settle, 150); }
   addEventListener("scroll", () => {
     if (scrollY !== lastY) dir = scrollY > lastY ? 1 : -1;
     lastY = scrollY;
     if (scrollY > 4) intro.classList.add("gone");
-    clearTimeout(snapTimer);
-    snapTimer = setTimeout(() => {
-      if (busy) return;
-      const q = scrollY / step, f = q - Math.floor(q);
-      if (f < .003 || f > .997) return;
-      go(dir > 0 ? (f > .22 ? Math.ceil(q) : Math.floor(q)) : (f < .78 ? Math.floor(q) : Math.ceil(q)), .75);
-    }, 140);
+    armSettle();
   }, { passive: true });
+  // a new touch or wheel takes over from any settle in progress
+  addEventListener("touchstart", () => { touching = true; busyUntil = 0; }, { passive: true });
+  const lift = () => { touching = false; armSettle(); };
+  addEventListener("touchend", lift, { passive: true });
+  addEventListener("touchcancel", lift, { passive: true });
+  addEventListener("wheel", () => { busyUntil = 0; }, { passive: true });
 
   const cur = () => Math.round(scrollY / step);
   addEventListener("keydown", e => {
