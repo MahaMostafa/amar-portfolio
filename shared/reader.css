@@ -1,0 +1,79 @@
+/* Reading mode (phones): tap a page in the book and it lifts off the desk, large enough to read.
+   Built by shared/reader.js; nothing here applies until a page is opened. */
+
+.rd { position: fixed; inset: 0; z-index: 50; color: var(--cream); font-family: var(--sans); -webkit-tap-highlight-color: transparent; }
+.rd[hidden] { display: none; }
+.rd.is-closing { pointer-events: none; }
+
+/* the desk, with the same lamp light and grain as the stage */
+.rd-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(70% 55% at 50% 45%, rgba(255, 226, 196, .08), rgba(255, 226, 196, 0) 70%),
+    var(--desk, #1A1412);
+}
+.rd-bg::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); opacity: .5; mix-blend-mode: soft-light; }
+
+/* the page sits on a canvas inside a native scroller: pan in both axes, pinch still works */
+.rd-scroll {
+  position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; touch-action: manipulation; scrollbar-width: none; outline: none;
+}
+.rd-scroll::-webkit-scrollbar { display: none; }
+.rd-scroll:focus-visible { outline: 2px solid var(--blush); outline-offset: -3px; }
+.rd-canvas { position: relative; }
+.rd-box { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.rd-lift {
+  position: absolute; inset: 0; border-radius: 2px; pointer-events: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 14px 30px -6px rgba(0, 0, 0, .5), 0 36px 80px -18px rgba(0, 0, 0, .6);
+}
+.rd-sheet { position: absolute; left: 0; top: 0; width: 540px; height: 720px; transform-origin: 0 0; overflow: hidden; }
+.rd-turn { position: absolute; inset: 0; }
+
+/* controls: a scrim at the top and bottom so the page can slide under them */
+.rd-top, .rd-bot { position: absolute; left: 0; right: 0; display: flex; align-items: center; pointer-events: none; }
+.rd-top > *, .rd-bot > * { pointer-events: auto; }
+.rd-top {
+  top: 0; justify-content: space-between; gap: 12px;
+  padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left));
+  background: linear-gradient(180deg, rgba(26, 20, 18, .94) 0%, rgba(26, 20, 18, .78) 60%, rgba(26, 20, 18, 0) 100%);
+}
+.rd-bot {
+  bottom: 0; justify-content: center; gap: 10px;
+  padding: 16px max(12px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: linear-gradient(0deg, rgba(26, 20, 18, .94) 0%, rgba(26, 20, 18, .78) 60%, rgba(26, 20, 18, 0) 100%);
+}
+.rd-label {
+  pointer-events: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 500 9.5px/1 var(--sans); letter-spacing: .24em; text-transform: uppercase; color: rgba(246, 241, 234, .72);
+}
+.rd-label b { font: 400 15px/1 var(--serif); letter-spacing: 0; color: var(--cream); margin-inline: 2px 6px; }
+
+.rd-ic, .rd-pill {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px;
+  border: 1px solid rgba(246, 241, 234, .35); border-radius: 999px; background: rgba(26, 20, 18, .4); color: var(--cream);
+  cursor: pointer; -webkit-user-select: none; user-select: none;
+  transition: transform .16s var(--ease-out), background-color .2s ease, opacity .2s ease;
+}
+.rd-ic { width: 44px; padding: 0; }
+.rd-ic svg { width: 18px; height: 18px; }
+.rd-pill { min-width: 104px; padding: 0 18px 0 16px; font: 500 10px/1 var(--sans); letter-spacing: .22em; text-transform: uppercase; }
+.rd-pill svg { width: 15px; height: 15px; }
+.rd-ic:active, .rd-pill:active { transform: scale(.97); }
+.rd-ic:disabled { opacity: .28; cursor: default; transform: none; }
+.rd-ic:focus-visible, .rd-pill:focus-visible { outline: 2px solid var(--blush); outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) { .rd-ic:not(:disabled):hover, .rd-pill:hover { background: rgba(246, 241, 234, .1); } }
+
+/* where focus returns after reading (the book itself, never reached by Tab) */
+.rd-return:focus { outline: none; }
+
+/* one-time hint, in the voice of the stage's own "Scroll to turn the page" */
+.rd-hint {
+  position: fixed; left: 50%; bottom: calc(52px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 10;
+  display: flex; align-items: center; gap: 10px; white-space: nowrap; pointer-events: none;
+  font: 500 9px/1 var(--sans); letter-spacing: .26em; text-transform: uppercase; color: rgba(246, 241, 234, .65);
+  opacity: 0; transition: opacity .5s ease;
+}
+.rd-hint.on { opacity: 1; }
+.rd-hint svg { width: 16px; height: 16px; flex: none; }
+@media (min-width: 760px) { .rd-hint { display: none; } }

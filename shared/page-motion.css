@@ -1,0 +1,84 @@
+/* Designed recreations of the client's working documents (Fouq audit slides, Premier's Tea content plan)
+   and the in-page motion that plays once a page lies open (.pg.is-open, set by index.html).
+   Motion: transform / opacity / clip-path only, ease-out, 400–800ms, 40–70ms stagger, CSS transitions so it replays and retargets. */
+
+.pg { --stagger: 55ms; }
+.lnum { font-variant-numeric: lining-nums tabular-nums; }
+
+/* ---------- Fouq · scope checklist ---------- */
+.scope { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin-top: 12px; }
+.scope > div { border-top: 1px solid var(--line); padding: 4px 0; display: flex; gap: 8px; align-items: baseline; }
+.scope > div::before { content: ""; flex: none; width: 5px; height: 5px; background: var(--burgundy); transform: translateY(-2px) rotate(45deg); }
+
+/* ---------- a figure panel: hairline on top, label left, source note right ---------- */
+.viz { margin: 0; border-top: 1px solid var(--burgundy); padding-top: 9px; }
+.viz-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.viz-h .label { margin: 0; }
+.viz-src { font: italic 400 11px/1.3 var(--text); color: var(--ink-3); text-align: end; }
+
+/* Instagram stories audit: three KPIs with prior / last pair bars */
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 10px; }
+.kpi-t { font: 400 12px/1.25 var(--text); color: var(--ink-2); }
+.kpi-v { display: flex; align-items: baseline; gap: 7px; margin-top: 3px; }
+.kpi-n { font: 400 30px/1 var(--serif); color: var(--ink); letter-spacing: -.01em; }
+.kpi-d { font: 500 10.5px/1 var(--sans); letter-spacing: .06em; color: var(--burgundy); }
+.pair { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; height: 50px; margin-top: 8px; padding: 0 6px; border-bottom: 1px solid var(--ink-2); }
+.pair::before { content: ""; position: absolute; inset: 0 0 auto; border-top: 1px dashed var(--line); }
+.pair i { display: block; height: calc(var(--h) * 100%); background: var(--blush); transform-origin: 50% 100%; }
+.pair i + i { background: var(--burgundy); }
+
+.media { display: grid; grid-template-columns: 132px 1fr; gap: 18px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); align-items: center; }
+.hbars { display: grid; gap: 5px; }
+.hbar { display: grid; grid-template-columns: 46px 1fr 30px; gap: 8px; align-items: center; font: 400 12px/1 var(--text); color: var(--ink-2); }
+.hbar b { font: 400 13px/1 var(--serif); color: var(--ink); text-align: end; }
+.hbar s { display: block; height: 7px; width: calc(var(--w) * 100%); background: var(--burgundy); transform-origin: 0 50%; }
+.hbar.zero { grid-template-columns: 1fr auto; }
+.legend { display: flex; gap: 14px; font: 500 9.5px/1 var(--sans); letter-spacing: .04em; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 9px; height: 9px; background: var(--blush); }
+.legend span + span::before { background: var(--burgundy); }
+
+/* Website audit: the statement, the diagnosis, the direction */
+.webaudit { display: grid; grid-template-columns: 1fr 1.18fr; gap: 18px; margin-top: 8px; }
+.wa-k { font: 500 9.5px/1.2 var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 5px; }
+.wa-was { font: italic 400 12.5px/1.42 var(--text); color: var(--ink-2); }
+.wa-was q { quotes: "\201C" "\201D"; }
+
+.wa-why { font: 400 12px/1.42 var(--text); color: var(--ink-2); margin-top: 5px; }
+.wa-new { border-inline-start: 2px solid var(--burgundy); padding-inline-start: 12px; }
+.wa-en { font: italic 500 14.5px/1.2 var(--serif); color: var(--ink); }
+.wa-ar { font: 400 12.5px/1.65 var(--ar); color: var(--ink); margin-top: 5px; }
+
+/* ---------- Premier's Tea · monthly content plan ---------- */
+.cal { margin: 14px 0 0; border-top: 1px solid var(--burgundy); padding-top: 9px; }
+.cal-t { margin-top: 8px; }
+.cal-r { display: grid; grid-template-columns: 92px 78px 56px 1fr; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); align-items: center; }
+.cal-r:last-child { border-bottom: 1px solid var(--line); }
+.cal-head { align-items: end; padding: 0 0 6px; border-top: 0; }
+.cal-head span { font: 500 11.5px/1.3 var(--ar); color: var(--ink); }
+.cal-head span small { display: block; font: 500 9.5px/1.2 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); direction: ltr; text-align: right; margin-top: 2px; }
+.cal-type { white-space: nowrap; font: 500 10px/1.3 var(--sans); letter-spacing: .08em; color: var(--burgundy); direction: ltr; text-align: right; }
+.cal-topic { font: 500 13px/1.5 var(--ar); color: var(--ink); }
+.cal-tea { font: 400 11.5px/1.3 var(--text); color: var(--ink-2); direction: ltr; text-align: right; }
+.cal-tea img { width: 52px; height: 50px; object-fit: cover; margin-inline-start: auto; border: 1px solid var(--line); }
+.cal-cap { font: 400 12.5px/1.66 var(--ar); color: var(--ink); }
+.cal-cap bdi { font-family: var(--text); font-size: .96em; white-space: nowrap; }
+
+/* ---------- motion: hidden until the page lies open (only inside the book, never in other renderers) ---------- */
+.mo, .grow-y, .grow-x {
+  transition: opacity .6s var(--ease-out), transform .7s var(--ease-out), clip-path .7s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * var(--stagger) + 120ms);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .face .pg:not(.is-open) .mo { opacity: 0; transform: translateY(8px); }
+  .face .pg:not(.is-open) .grow-y { transform: scaleY(0); }
+  .face .pg:not(.is-open) .grow-x { transform: scaleX(0); }
+  .face .pg:not(.is-open) .wipe { clip-path: inset(0 100% 0 0); }
+  .face .pg:not(.is-open) .wipe[dir="rtl"], .face .pg:not(.is-open) [dir="rtl"] .wipe { clip-path: inset(0 0 0 100%); }
+  /* leaving: fade quickly and together, so nothing trails behind a turning page */
+  .face .pg:not(.is-open) :is(.mo, .grow-y, .grow-x, .wipe) { transition-duration: .2s; transition-delay: 0s; }
+}
+.wipe { clip-path: inset(0 0 0 0); transition: clip-path .8s var(--ease-out); transition-delay: calc(var(--i, 0) * var(--stagger) + 120ms); }
+@media (prefers-reduced-motion: reduce) {
+  .mo, .grow-y, .grow-x, .wipe { transition: none !important; }
+}

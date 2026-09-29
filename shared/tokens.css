@@ -1,0 +1,142 @@
+/* Amar Suleiman — magazine tokens + shared page system (pages are designed at 540×720, then scaled)
+   Type: Bodoni Moda (display, Didone) · Newsreader (text) · Jost (labels, Futura-style) · Noto Naskh Arabic */
+:root {
+  --paper: #F6F3EE;
+  --paper-2: #EDE7DF;
+  --burgundy: #642A31;
+  --burgundy-2: #4A1F25;
+  --blush: #D9B9B4;
+  --ink: #211F1E;
+  --ink-2: #57514C;
+  --ink-3: #6E6761;   /* was #8C857F (3.3:1 on paper); now ~4.9:1 */
+  --charcoal: #232222;
+  --cream: #F6F1EA;
+  --line: rgba(33, 31, 30, .14);
+  --line-light: rgba(246, 241, 234, .18);
+
+  --serif: "Bodoni Moda", "Didot", "Bodoni 72", serif;
+  --text: "Newsreader", "Georgia", serif;
+  --sans: "Jost", "Futura", system-ui, sans-serif;
+  --ar: "Noto Naskh Arabic", "Geeza Pro", serif;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35  0 0 0 0 .3  0 0 0 0 .27  0 0 0 .5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+img { display: block; max-width: 100%; }
+button { font: inherit; color: inherit; }
+
+/* ---------- Page (540 × 720) ---------- */
+.pg {
+  position: absolute; inset: 0; width: 540px; height: 720px;
+  background: var(--paper); color: var(--ink);
+  font: 400 13.5px/1.56 var(--text);
+  padding: 50px 48px 64px; overflow: hidden;
+  font-variant-numeric: oldstyle-nums proportional-nums;
+  font-optical-sizing: auto;
+}
+.pg::after { /* paper grain */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: var(--grain); opacity: .35; mix-blend-mode: multiply;
+}
+.pg.dark { background: var(--charcoal); color: var(--cream); }
+.pg.wine { background: var(--burgundy); color: var(--cream); }
+.pg.dark::after, .pg.wine::after { opacity: .5; mix-blend-mode: soft-light; }
+.pg.bleed { padding: 0; }
+.pg > * { position: relative; }
+.pg > .abs { position: absolute; }
+
+/* the tree: the portfolio's own line artwork, used as a mask so it takes any colour */
+.tree {
+  position: absolute !important; inset: 0; pointer-events: none;
+  background: var(--tree, rgba(100, 42, 49, .55));
+  -webkit-mask: url("../assets/tree.webp") var(--tree-pos, center) / var(--tree-size, cover) no-repeat;
+          mask: url("../assets/tree.webp") var(--tree-pos, center) / var(--tree-size, cover) no-repeat;
+}
+
+.kick { font: 500 10px/1.3 var(--sans); letter-spacing: .24em; text-transform: uppercase; color: var(--burgundy); }
+.dark .kick, .wine .kick { color: var(--blush); }
+.serif { font-family: var(--serif); font-weight: 400; letter-spacing: -.01em; line-height: .96; }
+.it { font-style: italic; }
+.st { font-weight: 500; letter-spacing: 0; } /* Bodoni at 15–22px: a touch heavier so the hairlines hold */
+.h0 { font-size: 132px; line-height: .82; letter-spacing: -.02em; }
+.h1 { font-size: 78px; }
+.h2 { font-size: 44px; }
+.h3 { font-size: 30px; }
+.h4 { font-size: 21px; line-height: 1.08; }
+.lede { font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+.body { color: var(--ink-2); }
+.dark .body, .dark .lede, .wine .body, .wine .lede { color: rgba(246,241,234,.86); }
+.small { font-size: 12px; line-height: 1.5; }
+.muted { color: var(--ink-3); }
+.ar { font-family: var(--ar); direction: rtl; }
+.dropcap::first-letter {
+  font-family: var(--serif); float: left; font-size: 64px; line-height: .8;
+  padding: 5px 10px 0 0; color: var(--burgundy);
+}
+
+/* ornament: a small diamond instead of short rules */
+.orn { display: block; width: 7px; height: 7px; margin: 22px 0 22px 2px; background: var(--burgundy); transform: rotate(45deg); }
+.orn.c { margin-inline: auto; }
+.dark .orn, .wine .orn { background: var(--blush); }
+.orn3 { display: flex; gap: 9px; align-items: center; margin: 22px 0; }
+.orn3 i { width: 5px; height: 5px; background: var(--burgundy); transform: rotate(45deg); }
+.orn3 i:nth-child(2) { width: 7px; height: 7px; }
+.wine .orn3 i, .dark .orn3 i { background: var(--blush); }
+
+/* folio: page number at the outer edge, masthead beside it */
+.folio {
+  position: absolute !important; bottom: 26px; display: flex; gap: 9px; align-items: center;
+  font: 500 9.5px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--ink-3);
+}
+.folio b { font: 400 14px/1 var(--serif); letter-spacing: 0; color: var(--ink); }
+.folio em { width: 4px; height: 4px; background: currentColor; transform: rotate(45deg); }
+.dark .folio, .wine .folio { color: rgba(246,241,234,.72); }
+.dark .folio b, .wine .folio b { color: var(--cream); }
+.folio.r { right: 48px; flex-direction: row-reverse; }
+.folio.l { left: 48px; }
+
+.img { position: relative; overflow: hidden; background: var(--paper-2); }
+.img img { width: 100%; height: 100%; object-fit: cover; }
+.img.framed { border: 5px solid var(--burgundy); }
+.cap { font: italic 400 11.5px/1.4 var(--text); color: var(--ink-2); margin-top: 6px; }
+
+.rows > * { border-top: 1px solid var(--line); padding: 13px 0; display: grid; grid-template-columns: 54px 1fr; align-items: baseline; }
+.rows > *:last-child { border-bottom: 1px solid var(--line); }
+.dark .rows > * { border-color: var(--line-light); }
+.num { font-family: var(--serif); color: var(--burgundy); font-size: 30px; line-height: .9; font-variant-numeric: lining-nums; }
+.dark .num, .wine .num { color: var(--blush); }
+.label { font: 500 9.5px/1.3 var(--sans); letter-spacing: .22em; text-transform: uppercase; color: var(--burgundy); margin-bottom: 8px; }
+.dark .label, .wine .label { color: var(--blush); }
+.quote { border-inline-start: 2px solid var(--burgundy); padding: 8px 0 8px 18px; }
+.wine .quote, .dark .quote { border-color: var(--blush); }
+
+/* diamond-bullet list */
+.dl { list-style: none; margin: 0; padding: 0; }
+.dl li { position: relative; padding-inline-start: 14px; }
+.dl li + li { margin-top: 4px; }
+.dl li::before { content: ""; position: absolute; left: 1px; top: .62em; width: 4px; height: 4px; background: var(--burgundy); transform: rotate(45deg); }
+.wine .dl li::before, .dark .dl li::before { background: var(--blush); }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+/* sound toggle (shared) */
+.snd {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  background: transparent; border: 1px solid currentColor; border-radius: 999px;
+  padding: 8px 15px 8px 12px; font: 500 10px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase;
+  transition: background-color .2s ease, color .2s ease, opacity .2s ease;
+}
+.snd svg { width: 15px; height: 15px; }
+.snd .wave { transition: opacity .2s ease; }
+.snd[aria-pressed="false"] .wave { opacity: 0; }
+.snd[aria-pressed="false"] .x { opacity: 1; }
+.snd[aria-pressed="true"] .x { opacity: 0; }
+.snd:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
